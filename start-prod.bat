@@ -22,14 +22,26 @@ exit /b 1
 :main
 echo %GREEN%[INFO]%NC% 启动生产环境...
 
-echo %BLUE%[STEP]%NC% 拉取最新镜像...
-docker-compose -f docker-compose.prod.yml pull
+echo %BLUE%[STEP]%NC% 强制拉取最新镜像...
+
+echo %GREEN%[INFO]%NC% 当前本地镜像：
+docker images | findstr "vakesamadocker/erp-2025" 2>nul || echo 未找到相关镜像
+
+docker-compose -f docker-compose.prod.yml pull --ignore-pull-failures
 if errorlevel 1 (
     echo 镜像拉取失败
     pause
     exit /b 1
 )
+
+echo %GREEN%[INFO]%NC% 拉取后的镜像：
+docker images | findstr "vakesamadocker/erp-2025" 2>nul || echo 未找到相关镜像
+
 echo %GREEN%[INFO]%NC% 镜像拉取完成
+
+echo %BLUE%[STEP]%NC% 清理旧的镜像版本...
+for /f "tokens=3" %%i in ('docker images --filter "dangling=true" --quiet 2^>nul') do docker rmi %%i 2>nul
+echo %GREEN%[INFO]%NC% 镜像清理完成
 
 echo %BLUE%[STEP]%NC% 启动服务...
 docker-compose -f docker-compose.prod.yml up -d
