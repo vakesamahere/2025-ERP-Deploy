@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  site-service:
+    # 告诉 Compose 使用当前目录下的 Dockerfile 构建镜像
+    build:
+      context: .
+      dockerfile: front.Dockerfile
+    image: vakesamadocker/erp-2025-site:latest
+    container_name: erp-2025-site
+    ports:
+      - "8083:80"
+  backend-service:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    image: vakesamadocker/erp-2025-backend:latest
+    container_name: erp-2025-backend
+    ports:
+      - "3003:8080"
