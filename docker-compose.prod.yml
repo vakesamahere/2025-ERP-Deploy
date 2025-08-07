@@ -1,0 +1,16 @@
+services:
+  # Java 后端服务（从 Docker Hub 拉取）
+  backend-service:
+    image: vakesamadocker/erp-2025-backend:latest
+    container_name: erp-2025-backend
+    restart: always
+    ports:
+      - "3003:8080"
+
+  # 前端服务（从 Docker Hub 拉取）
+  site-service:
+    image: vakesamadocker/erp-2025-site:latest
+    container_name: erp-2025-site
+    restart: always
+    ports:
+      - "8083:80"
