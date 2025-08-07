@@ -19,16 +19,46 @@ set "NC=[0m"
 
 echo %GREEN%[INFO]%NC% 开始构建和推送流程...
 
-REM 拉取最新代码
-echo %BLUE%[STEP]%NC% 拉取最新代码...
-if exist ".git" (
-    git pull origin main 2>nul || git pull origin master 2>nul || (
-        echo %YELLOW%[WARNING]%NC% Git pull 失败，继续使用当前代码
+REM 拉取前后端仓库代码
+echo %BLUE%[STEP]%NC% 拉取前后端仓库代码...
+
+REM 拉取前端代码
+if exist "erp" (
+    echo %GREEN%[INFO]%NC% 更新前端代码...
+    cd erp
+    git pull origin test/fake-main 2>nul || (
+        echo %YELLOW%[WARNING]%NC% 前端代码 pull 失败，继续使用当前代码
     )
-    echo %GREEN%[INFO]%NC% 代码更新完成
+    cd ..
 ) else (
-    echo %YELLOW%[WARNING]%NC% 当前目录不是 Git 仓库，跳过代码拉取
+    echo %GREEN%[INFO]%NC% 克隆前端仓库...
+    git clone -b test/fake-main git@github.com:pezy-yx/ERP-SD-simplified.git erp
+    if errorlevel 1 (
+        echo %RED%[ERROR]%NC% 前端仓库克隆失败
+        pause
+        exit /b 1
+    )
 )
+
+REM 拉取后端代码
+if exist "backend" (
+    echo %GREEN%[INFO]%NC% 更新后端代码...
+    cd backend
+    git pull origin main 2>nul || (
+        echo %YELLOW%[WARNING]%NC% 后端代码 pull 失败，继续使用当前代码
+    )
+    cd ..
+) else (
+    echo %GREEN%[INFO]%NC% 克隆后端仓库...
+    git clone -b main git@github.com:yyq856/ERP.git backend
+    if errorlevel 1 (
+        echo %RED%[ERROR]%NC% 后端仓库克隆失败
+        pause
+        exit /b 1
+    )
+)
+
+echo %GREEN%[INFO]%NC% 前后端代码更新完成
 
 REM 检查 Docker 是否运行
 echo %BLUE%[STEP]%NC% 检查 Docker 是否运行...
@@ -111,16 +141,46 @@ echo %GREEN%[INFO]%NC% 所有镜像推送完成
 goto :show_info
 
 :build_backend_only
-REM 拉取最新代码
-echo %BLUE%[STEP]%NC% 拉取最新代码...
-if exist ".git" (
-    git pull origin main 2>nul || git pull origin master 2>nul || (
-        echo %YELLOW%[WARNING]%NC% Git pull 失败，继续使用当前代码
+REM 拉取前后端仓库代码
+echo %BLUE%[STEP]%NC% 拉取前后端仓库代码...
+
+REM 拉取前端代码
+if exist "erp" (
+    echo %GREEN%[INFO]%NC% 更新前端代码...
+    cd erp
+    git pull origin test/fake-main 2>nul || (
+        echo %YELLOW%[WARNING]%NC% 前端代码 pull 失败，继续使用当前代码
     )
-    echo %GREEN%[INFO]%NC% 代码更新完成
+    cd ..
 ) else (
-    echo %YELLOW%[WARNING]%NC% 当前目录不是 Git 仓库，跳过代码拉取
+    echo %GREEN%[INFO]%NC% 克隆前端仓库...
+    git clone -b test/fake-main git@github.com:pezy-yx/ERP-SD-simplified.git erp
+    if errorlevel 1 (
+        echo %RED%[ERROR]%NC% 前端仓库克隆失败
+        pause
+        exit /b 1
+    )
 )
+
+REM 拉取后端代码
+if exist "backend" (
+    echo %GREEN%[INFO]%NC% 更新后端代码...
+    cd backend
+    git pull origin main 2>nul || (
+        echo %YELLOW%[WARNING]%NC% 后端代码 pull 失败，继续使用当前代码
+    )
+    cd ..
+) else (
+    echo %GREEN%[INFO]%NC% 克隆后端仓库...
+    git clone -b main git@github.com:yyq856/ERP.git backend
+    if errorlevel 1 (
+        echo %RED%[ERROR]%NC% 后端仓库克隆失败
+        pause
+        exit /b 1
+    )
+)
+
+echo %GREEN%[INFO]%NC% 前后端代码更新完成
 
 echo %BLUE%[STEP]%NC% 构建后端镜像...
 docker build -f backend.Dockerfile -t %DOCKER_USERNAME%/%BACKEND_IMAGE%:%TAG% .
@@ -139,16 +199,46 @@ echo %GREEN%[INFO]%NC% 后端镜像构建和推送完成！
 goto :end
 
 :build_frontend_only
-REM 拉取最新代码
-echo %BLUE%[STEP]%NC% 拉取最新代码...
-if exist ".git" (
-    git pull origin main 2>nul || git pull origin master 2>nul || (
-        echo %YELLOW%[WARNING]%NC% Git pull 失败，继续使用当前代码
+REM 拉取前后端仓库代码
+echo %BLUE%[STEP]%NC% 拉取前后端仓库代码...
+
+REM 拉取前端代码
+if exist "erp" (
+    echo %GREEN%[INFO]%NC% 更新前端代码...
+    cd erp
+    git pull origin test/fake-main 2>nul || (
+        echo %YELLOW%[WARNING]%NC% 前端代码 pull 失败，继续使用当前代码
     )
-    echo %GREEN%[INFO]%NC% 代码更新完成
+    cd ..
 ) else (
-    echo %YELLOW%[WARNING]%NC% 当前目录不是 Git 仓库，跳过代码拉取
+    echo %GREEN%[INFO]%NC% 克隆前端仓库...
+    git clone -b test/fake-main git@github.com:pezy-yx/ERP-SD-simplified.git erp
+    if errorlevel 1 (
+        echo %RED%[ERROR]%NC% 前端仓库克隆失败
+        pause
+        exit /b 1
+    )
 )
+
+REM 拉取后端代码
+if exist "backend" (
+    echo %GREEN%[INFO]%NC% 更新后端代码...
+    cd backend
+    git pull origin main 2>nul || (
+        echo %YELLOW%[WARNING]%NC% 后端代码 pull 失败，继续使用当前代码
+    )
+    cd ..
+) else (
+    echo %GREEN%[INFO]%NC% 克隆后端仓库...
+    git clone -b main https://github.com/yyq856/ERP.git backend
+    if errorlevel 1 (
+        echo %RED%[ERROR]%NC% 后端仓库克隆失败
+        pause
+        exit /b 1
+    )
+)
+
+echo %GREEN%[INFO]%NC% 前后端代码更新完成
 
 echo %BLUE%[STEP]%NC% 构建前端镜像...
 docker build -f front.Dockerfile -t %DOCKER_USERNAME%/%FRONTEND_IMAGE%:%TAG% .

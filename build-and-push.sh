@@ -45,17 +45,43 @@ check_docker() {
     print_message "Docker 运行正常"
 }
 
-# 拉取最新代码
+# 拉取前后端仓库代码
 pull_latest_code() {
-    print_step "拉取最新代码..."
-    if [ -d ".git" ]; then
-        git pull origin main || git pull origin master || {
-            print_warning "Git pull 失败，继续使用当前代码"
+    print_step "拉取前后端仓库代码..."
+
+    # 拉取前端代码
+    if [ -d "erp" ]; then
+        print_message "更新前端代码..."
+        cd erp
+        git pull origin test/fake-main || {
+            print_warning "前端代码 pull 失败，继续使用当前代码"
         }
-        print_message "代码更新完成"
+        cd ..
     else
-        print_warning "当前目录不是 Git 仓库，跳过代码拉取"
+        print_message "克隆前端仓库..."
+        git clone -b test/fake-main git@github.com:pezy-yx/ERP-SD-simplified.git erp || {
+            print_error "前端仓库克隆失败"
+            exit 1
+        }
     fi
+
+    # 拉取后端代码
+    if [ -d "backend" ]; then
+        print_message "更新后端代码..."
+        cd backend
+        git pull origin main || {
+            print_warning "后端代码 pull 失败，继续使用当前代码"
+        }
+        cd ..
+    else
+        print_message "克隆后端仓库..."
+        git clone -b main git@github.com:yyq856/ERP.git backend || {
+            print_error "后端仓库克隆失败"
+            exit 1
+        }
+    fi
+
+    print_message "前后端代码更新完成"
 }
 
 # 检查是否已登录 Docker Hub
