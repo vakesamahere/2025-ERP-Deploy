@@ -9,7 +9,15 @@ set -e  # 遇到错误立即退出
 DOCKER_USERNAME="vakesamadocker"
 BACKEND_IMAGE="erp-2025-backend"
 FRONTEND_IMAGE="erp-2025-site"
-TAG="latest"
+VERSION_FILE="VERSION"
+
+# 读取当前版本号
+if [ -f "$VERSION_FILE" ]; then
+    CURRENT_VERSION=$(cat "$VERSION_FILE")
+else
+    CURRENT_VERSION="1.0.0"
+    echo "$CURRENT_VERSION" > "$VERSION_FILE"
+fi
 
 # 颜色输出
 RED='\033[0;31m'
@@ -33,6 +41,59 @@ print_error() {
 
 print_step() {
     echo -e "${BLUE}[STEP]${NC} $1"
+}
+
+# 版本管理函数
+increment_version() {
+    local version=$1
+    local type=${2:-patch}  # patch, minor, major
+
+    IFS='.' read -ra VERSION_PARTS <<< "$version"
+    local major=${VERSION_PARTS[0]}
+    local minor=${VERSION_PARTS[1]}
+    local patch=${VERSION_PARTS[2]}
+
+    case $type in
+        major)
+            major=$((major + 1))
+            minor=0
+            patch=0
+            ;;
+        minor)
+            minor=$((minor + 1))
+            patch=0
+            ;;
+        patch)
+            patch=$((patch + 1))
+            ;;
+        *)
+            print_error "无效的版本类型: $type (支持: major, minor, patch)"
+            exit 1
+            ;;
+    esac
+
+    echo "$major.$minor.$patch"
+}
+
+# 显示版本信息
+show_version_info() {
+    print_step "版本信息："
+    echo "当前版本: $CURRENT_VERSION"
+    echo "新版本: $NEW_VERSION"
+    echo ""
+}
+
+# 更新版本号
+update_version() {
+    local version_type=${1:-patch}
+    NEW_VERSION=$(increment_version "$CURRENT_VERSION" "$version_type")
+
+    print_step "版本更新："
+    echo "从 $CURRENT_VERSION → $NEW_VERSION ($version_type)"
+
+    # 更新版本文件
+    echo "$NEW_VERSION" > "$VERSION_FILE"
+    print_message "版本文件已更新"
 }
 
 # 检查 Docker 是否运行
@@ -97,27 +158,33 @@ check_docker_login() {
 # 构建后端镜像
 build_backend() {
     print_step "构建后端镜像..."
-    docker build -f backend.Dockerfile -t ${DOCKER_USERNAME}/${BACKEND_IMAGE}:${TAG} .
-    print_message "后端镜像构建完成"
+    docker build -f backend.Dockerfile \
+        -t ${DOCKER_USERNAME}/${BACKEND_IMAGE}:${NEW_VERSION} \
+        -t ${DOCKER_USERNAME}/${BACKEND_IMAGE}:latest .
+    print_message "后端镜像构建完成 (${NEW_VERSION})"
 }
 
 # 构建前端镜像
 build_frontend() {
     print_step "构建前端镜像..."
-    docker build -f front.Dockerfile -t ${DOCKER_USERNAME}/${FRONTEND_IMAGE}:${TAG} .
-    print_message "前端镜像构建完成"
+    docker build -f front.Dockerfile \
+        -t ${DOCKER_USERNAME}/${FRONTEND_IMAGE}:${NEW_VERSION} \
+        -t ${DOCKER_USERNAME}/${FRONTEND_IMAGE}:latest .
+    print_message "前端镜像构建完成 (${NEW_VERSION})"
 }
 
 # 推送镜像到 Docker Hub
 push_images() {
     print_step "推送镜像到 Docker Hub..."
-    
-    print_message "推送后端镜像..."
-    docker push ${DOCKER_USERNAME}/${BACKEND_IMAGE}:${TAG}
-    
-    print_message "推送前端镜像..."
-    docker push ${DOCKER_USERNAME}/${FRONTEND_IMAGE}:${TAG}
-    
+
+    print_message "推送后端镜像 (版本: ${NEW_VERSION})..."
+    docker push ${DOCKER_USERNAME}/${BACKEND_IMAGE}:${NEW_VERSION}
+    docker push ${DOCKER_USERNAME}/${BACKEND_IMAGE}:latest
+
+    print_message "推送前端镜像 (版本: ${NEW_VERSION})..."
+    docker push ${DOCKER_USERNAME}/${FRONTEND_IMAGE}:${NEW_VERSION}
+    docker push ${DOCKER_USERNAME}/${FRONTEND_IMAGE}:latest
+
     print_message "所有镜像推送完成"
 }
 
@@ -136,23 +203,35 @@ cleanup_local() {
 # 显示镜像信息
 show_image_info() {
     print_step "镜像信息："
-    echo "后端镜像: ${DOCKER_USERNAME}/${BACKEND_IMAGE}:${TAG}"
-    echo "前端镜像: ${DOCKER_USERNAME}/${FRONTEND_IMAGE}:${TAG}"
+    echo "版本: ${NEW_VERSION}"
+    echo "后端镜像: ${DOCKER_USERNAME}/${BACKEND_IMAGE}:${NEW_VERSION}"
+    echo "前端镜像: ${DOCKER_USERNAME}/${FRONTEND_IMAGE}:${NEW_VERSION}"
     echo ""
-    echo "使用以下命令拉取镜像："
-    echo "docker pull ${DOCKER_USERNAME}/${BACKEND_IMAGE}:${TAG}"
-    echo "docker pull ${DOCKER_USERNAME}/${FRONTEND_IMAGE}:${TAG}"
+    echo "使用以下命令拉取特定版本："
+    echo "docker pull ${DOCKER_USERNAME}/${BACKEND_IMAGE}:${NEW_VERSION}"
+    echo "docker pull ${DOCKER_USERNAME}/${FRONTEND_IMAGE}:${NEW_VERSION}"
     echo ""
-    echo "或使用生产环境 docker-compose："
-    echo "docker-compose -f docker-compose.prod.yml up -d"
+    echo "或拉取最新版本："
+    echo "docker pull ${DOCKER_USERNAME}/${BACKEND_IMAGE}:latest"
+    echo "docker pull ${DOCKER_USERNAME}/${FRONTEND_IMAGE}:latest"
+    echo ""
+    echo "生产环境部署："
+    echo "1. 更新 docker-compose.prod.yml 中的版本号为 ${NEW_VERSION}"
+    echo "2. 运行: docker-compose -f docker-compose.prod.yml up -d"
 }
 
 # 主函数
 main() {
+    local version_type=${1:-patch}
+
     print_message "开始构建和推送流程..."
 
     # 拉取最新代码
     pull_latest_code
+
+    # 更新版本号
+    update_version "$version_type"
+    show_version_info
 
     # 检查环境
     check_docker
@@ -176,17 +255,24 @@ main() {
 
 # 帮助信息
 show_help() {
-    echo "用法: $0 [选项]"
+    echo "用法: $0 [选项] [版本类型]"
     echo ""
     echo "选项:"
     echo "  -h, --help     显示帮助信息"
     echo "  -b, --backend  只构建和推送后端"
     echo "  -f, --frontend 只构建和推送前端"
+    echo "  --major        主版本更新 (x.0.0)"
+    echo "  --minor        次版本更新 (x.y.0)"
+    echo "  --patch        补丁版本更新 (x.y.z) [默认]"
+    echo ""
+    echo "当前版本: $CURRENT_VERSION"
     echo ""
     echo "示例:"
-    echo "  $0              # 构建和推送所有镜像"
-    echo "  $0 -b           # 只构建和推送后端"
-    echo "  $0 -f           # 只构建和推送前端"
+    echo "  $0              # 构建所有镜像 (patch 版本)"
+    echo "  $0 --minor      # 构建所有镜像 (minor 版本)"
+    echo "  $0 --major      # 构建所有镜像 (major 版本)"
+    echo "  $0 -b           # 只构建后端 (patch 版本)"
+    echo "  $0 -f           # 只构建前端 (patch 版本)"
 }
 
 # 处理命令行参数
@@ -197,22 +283,37 @@ case "${1:-}" in
         ;;
     -b|--backend)
         pull_latest_code
+        update_version "patch"
+        show_version_info
         check_docker
         check_docker_login
         build_backend
-        docker push ${DOCKER_USERNAME}/${BACKEND_IMAGE}:${TAG}
-        print_message "后端镜像构建和推送完成！"
+        docker push ${DOCKER_USERNAME}/${BACKEND_IMAGE}:${NEW_VERSION}
+        docker push ${DOCKER_USERNAME}/${BACKEND_IMAGE}:latest
+        print_message "后端镜像构建和推送完成！(版本: ${NEW_VERSION})"
         ;;
     -f|--frontend)
         pull_latest_code
+        update_version "patch"
+        show_version_info
         check_docker
         check_docker_login
         build_frontend
-        docker push ${DOCKER_USERNAME}/${FRONTEND_IMAGE}:${TAG}
-        print_message "前端镜像构建和推送完成！"
+        docker push ${DOCKER_USERNAME}/${FRONTEND_IMAGE}:${NEW_VERSION}
+        docker push ${DOCKER_USERNAME}/${FRONTEND_IMAGE}:latest
+        print_message "前端镜像构建和推送完成！(版本: ${NEW_VERSION})"
+        ;;
+    --major)
+        main "major"
+        ;;
+    --minor)
+        main "minor"
+        ;;
+    --patch)
+        main "patch"
         ;;
     "")
-        main
+        main "patch"
         ;;
     *)
         print_error "未知选项: $1"
