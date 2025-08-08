@@ -1,0 +1,24 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: development/backend.Dockerfile
+    working_dir: /workspace/backend
+    volumes:
+      - type: bind
+        source: ../backend
+        target: /workspace/backend
+      - type: volume
+        source: maven-repo
+        target: /root/.m2
+    ports:
+      - "8080:8080"
+      - "5005:5005"
+    environment:
+      - MAVEN_OPTS=-Xmx2g
+      - SPRING_PROFILES_ACTIVE=dev
+    command: >-
+      bash -lc "mvn -DskipTests spring-boot:run -Dspring-boot.run.jvmArguments='-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'"
+volumes:
+  maven-repo:
+    driver: local
