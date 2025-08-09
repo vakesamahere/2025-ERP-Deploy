@@ -106,6 +106,19 @@ check_docker() {
     print_message "Docker 运行正常"
 }
 
+# 获取当前分支名
+get_current_branch() {
+    local dir=$1
+    if [ -d "$dir" ]; then
+        cd "$dir"
+        local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+        cd ..
+        echo "$branch"
+    else
+        echo "main"  # 默认分支
+    fi
+}
+
 # 拉取前后端仓库代码
 pull_latest_code() {
     print_step "拉取前后端仓库代码..."
@@ -114,7 +127,9 @@ pull_latest_code() {
     if [ -d "erp" ]; then
         print_message "更新前端代码..."
         cd erp
-        git pull origin test/fake-main || {
+        local frontend_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "test/fake-main")
+        print_message "前端当前分支: $frontend_branch"
+        git pull origin "$frontend_branch" || {
             print_warning "前端代码 pull 失败，继续使用当前代码"
         }
         cd ..
@@ -130,7 +145,9 @@ pull_latest_code() {
     if [ -d "backend" ]; then
         print_message "更新后端代码..."
         cd backend
-        git pull origin main || {
+        local backend_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")
+        print_message "后端当前分支: $backend_branch"
+        git pull origin "$backend_branch" || {
             print_warning "后端代码 pull 失败，继续使用当前代码"
         }
         cd ..
@@ -143,6 +160,26 @@ pull_latest_code() {
     fi
 
     print_message "前后端代码更新完成"
+}
+
+# 显示当前分支信息
+show_branch_info() {
+    print_step "当前分支信息："
+
+    if [ -d "erp" ]; then
+        local frontend_branch=$(get_current_branch "erp")
+        echo "前端分支: $frontend_branch"
+    else
+        echo "前端分支: 未克隆 (将使用 test/fake-main)"
+    fi
+
+    if [ -d "backend" ]; then
+        local backend_branch=$(get_current_branch "backend")
+        echo "后端分支: $backend_branch"
+    else
+        echo "后端分支: 未克隆 (将使用 main)"
+    fi
+    echo ""
 }
 
 # 检查是否已登录 Docker Hub
@@ -226,6 +263,9 @@ main() {
 
     print_message "开始构建和推送流程..."
 
+    # 显示当前分支信息
+    show_branch_info
+
     # 拉取最新代码
     pull_latest_code
 
@@ -282,6 +322,7 @@ case "${1:-}" in
         exit 0
         ;;
     -b|--backend)
+        show_branch_info
         pull_latest_code
         update_version "patch"
         show_version_info
@@ -293,6 +334,7 @@ case "${1:-}" in
         print_message "后端镜像构建和推送完成！(版本: ${NEW_VERSION})"
         ;;
     -f|--frontend)
+        show_branch_info
         pull_latest_code
         update_version "patch"
         show_version_info

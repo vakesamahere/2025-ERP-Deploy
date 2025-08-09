@@ -1,0 +1,8 @@
+[submodule "backend"]
+	path = backend
+	url = git@github.com:yyq856/ERP.git
+	branch = main
+[submodule "erp"]
+	path = erp
+	url = git@github.com:pezy-yx/ERP-SD-simplified.git
+	branch = test/fake-main

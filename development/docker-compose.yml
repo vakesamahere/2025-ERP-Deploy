@@ -3,14 +3,10 @@ services:
     build:
       context: ..
       dockerfile: development/backend.Dockerfile
-    working_dir: /workspace/backend
+    working_dir: /workspace/ERP
     volumes:
-      - type: bind
-        source: ../backend
-        target: /workspace/backend
-      - type: volume
-        source: maven-repo
-        target: /root/.m2
+      - ../backend/ERP:/workspace/ERP
+      - maven-repo:/root/.m2
     ports:
       - "8080:8080"
       - "5005:5005"
@@ -19,6 +15,8 @@ services:
       - SPRING_PROFILES_ACTIVE=dev
     command: >-
       bash -lc "mvn -DskipTests spring-boot:run -Dspring-boot.run.jvmArguments='-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'"
+
+
 volumes:
   maven-repo:
     driver: local
