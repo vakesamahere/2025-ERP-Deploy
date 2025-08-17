@@ -5,4 +5,4 @@
 [submodule "erp"]
 	path = erp
 	url = git@github.com:pezy-yx/ERP-SD-simplified.git
-	branch = test/fake-main
+	branch = main
